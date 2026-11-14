@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 560" width="1120" height="560" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif">
+  <rect width="1120" height="560" fill="#FFFFFF"/>
+  <rect x="16" y="16" width="1088" height="528" rx="8" fill="#FAFAFA" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Header -->
+  <text x="40" y="52" font-size="18" font-weight="600" fill="#0F172A">全体アーキテクチャ: Fabric IQ Ontology × Skills for Fabric × Microsoft Foundry</text>
+  <text x="40" y="74" font-size="12" fill="#64748B">構造化データ（ERP / MES / IoT）の意味統合と、非構造化ドキュメント（SOP / 品質基準 / 承認規程 / SLA）のハイブリッド推論</text>
+  <line x1="40" y1="88" x2="1080" y2="88" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Column 1: Data Sources -->
+  <text x="40" y="116" font-size="11" font-weight="600" fill="#475569" letter-spacing="0.5">1. ENTERPRISE SOURCES</text>
+
+  <rect x="40" y="130" width="190" height="76" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="54" y="152" font-size="13" font-weight="600" fill="#0F172A">ERP（商流・計画）</text>
+  <text x="54" y="171" font-size="11" fill="#475569">顧客・サプライヤー・品目</text>
+  <text x="54" y="188" font-size="11" fill="#475569">顧客受注 SO-* / 発注 PO-*</text>
+
+  <rect x="40" y="218" width="190" height="76" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="54" y="240" font-size="13" font-weight="600" fill="#0F172A">MES（製造実行・品質）</text>
+  <text x="54" y="259" font-size="11" fill="#475569">ライン・設備・入荷部材ロット</text>
+  <text x="54" y="276" font-size="11" fill="#475569">製造指図 WO-* / 品質検査</text>
+
+  <rect x="40" y="306" width="190" height="76" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="54" y="328" font-size="13" font-weight="600" fill="#0F172A">IoT（設備監視・OT）</text>
+  <text x="54" y="347" font-size="11" fill="#475569">センサーマスタ・360件時系列</text>
+  <text x="54" y="364" font-size="11" fill="#475569">異常アラート ALT-*</text>
+
+  <rect x="40" y="408" width="190" height="108" rx="6" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="54" y="430" font-size="13" font-weight="600" fill="#0F172A">非構造化ドキュメント (8文書)</text>
+  <text x="54" y="450" font-size="11" fill="#475569">・設備保守SOP (交換部品番号)</text>
+  <text x="54" y="467" font-size="11" fill="#475569">・磁石管理規定 (150/175ppm基準)</text>
+  <text x="54" y="484" font-size="11" fill="#475569">・緊急空輸決裁規定 (9,000万円閾値)</text>
+  <text x="54" y="501" font-size="11" fill="#475569">・顧客別SLA特約 (24h/48h 8D期限)</text>
+
+  <!-- Column 2: OneLake Storage -->
+  <text x="276" y="116" font-size="11" font-weight="600" fill="#475569" letter-spacing="0.5">2. ONELAKE DATA LAYER</text>
+
+  <rect x="276" y="130" width="200" height="156" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="292" y="154" font-size="13" font-weight="600" fill="#0F172A">Lakehouse: mfg_ontology_lh</text>
+  <text x="292" y="175" font-size="11" fill="#475569">Managed Delta Tables (15表)</text>
+  <rect x="292" y="188" width="168" height="24" rx="4" fill="#F1F5F9"/>
+  <text x="300" y="204" font-size="11" fill="#334155">erp_* (7表) / mes_* (5表)</text>
+  <rect x="292" y="218" width="168" height="24" rx="4" fill="#F1F5F9"/>
+  <text x="300" y="234" font-size="11" fill="#334155">iot_* (3表) + Files/docs/</text>
+  <text x="292" y="268" font-size="10" fill="#64748B">SQL Analytics Endpoint (集計最適化)</text>
+
+  <rect x="276" y="302" width="200" height="80" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="292" y="325" font-size="13" font-weight="600" fill="#0F172A">Eventhouse (任意/KQL)</text>
+  <text x="292" y="345" font-size="11" fill="#475569">高頻度センサー時系列ストリーム</text>
+  <text x="292" y="364" font-size="10" fill="#64748B">KQL ネイティブ高速ウィンドウ集計</text>
+
+  <!-- Column 3: Fabric IQ Ontology -->
+  <text x="522" y="116" font-size="11" font-weight="600" fill="#4F46E5" letter-spacing="0.5">3. FABRIC IQ ONTOLOGY (V2)</text>
+
+  <rect x="522" y="130" width="272" height="252" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.5"/>
+  <rect x="522" y="130" width="272" height="34" rx="6" fill="#EEF2FF"/>
+  <text x="538" y="152" font-size="13" font-weight="600" fill="#312E81">mfg_enterprise_ontology</text>
+
+  <rect x="538" y="176" width="240" height="38" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="548" y="193" font-size="11" font-weight="600" fill="#0F172A">Namespaces (サブオントロジー)</text>
+  <text x="548" y="207" font-size="10" fill="#475569">erp#Order (受注) vs mes#Order (製造指図)</text>
+
+  <rect x="538" y="222" width="240" height="38" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="548" y="239" font-size="11" font-weight="600" fill="#0F172A">Synonyms &amp; Metadata</text>
+  <text x="548" y="253" font-size="10" fill="#475569">現場用語 (号機/ワーク) + 単位 (Pa/℃) + コード表</text>
+
+  <rect x="538" y="268" width="240" height="38" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="548" y="285" font-size="11" font-weight="600" fill="#0F172A">Business Rules (4ルール)</text>
+  <text x="548" y="299" font-size="10" fill="#475569">校正期限ガードレール / 吸湿上限 / 隠れリスク合算</text>
+
+  <rect x="538" y="314" width="240" height="54" rx="4" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1"/>
+  <text x="548" y="332" font-size="11" font-weight="600" fill="#3730A3">Selective Materialized Graph (Opt-in)</text>
+  <text x="548" y="347" font-size="10" fill="#4338CA">・多段波及経路探索 (GQL 5〜6 hops) → ON</text>
+  <text x="548" y="361" font-size="10" fill="#475569">・単純集計 / 高頻度テレメトリ → SQL/KQL 維持</text>
+
+  <!-- Column 4: Agents -->
+  <text x="840" y="116" font-size="11" font-weight="600" fill="#475569" letter-spacing="0.5">4. AGENT ORCHESTRATION</text>
+
+  <rect x="840" y="130" width="240" height="114" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="856" y="153" font-size="13" font-weight="600" fill="#0F172A">Skills for Fabric (CLI)</text>
+  <text x="856" y="172" font-size="11" fill="#475569">ontology-cli (Ontology MCP)</text>
+  <text x="856" y="190" font-size="10" fill="#64748B">・tools/list → V2 ゲート確認</text>
+  <text x="856" y="206" font-size="10" fill="#64748B">・ask_ontology / list_ontology_rules</text>
+  <text x="856" y="222" font-size="10" fill="#4F46E5">・Lab 02 設計相談 / Lab 04 前後比較</text>
+
+  <rect x="840" y="258" width="240" height="104" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="856" y="281" font-size="13" font-weight="600" fill="#0F172A">Fabric Data Agent</text>
+  <text x="856" y="300" font-size="11" fill="#475569">mfg_ops_data_agent (Published)</text>
+  <text x="856" y="318" font-size="10" fill="#64748B">・Ontology コンテキストに基づくGQL/SQL生成</text>
+  <text x="856" y="334" font-size="10" fill="#64748B">・OneLake Catalog MCP として外部公開</text>
+
+  <rect x="840" y="378" width="240" height="138" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.5"/>
+  <rect x="840" y="378" width="240" height="30" rx="6" fill="#EEF2FF"/>
+  <text x="856" y="398" font-size="13" font-weight="600" fill="#312E81">Microsoft Foundry Agent</text>
+  <text x="856" y="424" font-size="11" fill="#0F172A">1. Fabric Data Agent ツール呼び出し</text>
+  <text x="866" y="440" font-size="10" fill="#64748B">波及受注 9,970万円・対象顧客・ロット特定</text>
+  <text x="856" y="460" font-size="11" fill="#0F172A">2. Foundry IQ / AI Search 非構造化検索</text>
+  <text x="866" y="476" font-size="10" fill="#64748B">交換部品番号・代替先・24h報告・COO決裁特定</text>
+  <text x="856" y="498" font-size="10" font-weight="600" fill="#4F46E5">→ 構造化事実 × 社内規程の統合アクション回答</text>
+
+  <!-- Connector Arrows -->
+  <g stroke="#64748B" stroke-width="1.2" fill="none">
+    <path d="M230 168 L272 168"/>
+    <path d="M230 256 L272 220"/>
+    <path d="M230 344 L272 344"/>
+    <path d="M476 208 L518 208"/>
+    <path d="M476 342 L518 342"/>
+    <path d="M794 190 L836 190"/>
+    <path d="M794 310 L836 310"/>
+    <path d="M960 362 L960 374"/>
+    <path d="M230 462 L836 462" stroke-dasharray="5 3"/>
+  </g>
+  <text x="530" y="454" font-size="10" fill="#475569" text-anchor="middle">共通アンカーキー (equipment_id / defect_code / material_id / customer_id) で非構造化文書と構造化オントロジーを橋渡し</text>
+</svg>

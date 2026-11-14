@@ -1,0 +1,7 @@
+/// IoT 設備監視・テレメトリサブオントロジー（センサー・時系列テレメトリ・設備アラート）
+namespace iot
+	uri: "http://contoso-motors.co.jp/ontology/iot"
+	prefix: "iot"
+
+	annotation domainOwner = "ProductionEngineering_and_Maintenance"
+	annotation subOntologyScope = "OT_Telemetry_and_Alerts"

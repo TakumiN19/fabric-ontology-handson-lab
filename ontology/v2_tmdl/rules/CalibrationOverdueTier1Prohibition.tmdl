@@ -1,0 +1,9 @@
+/// 定期校正期限超過設備のTier1顧客案件割当禁止ガードレール
+rule CalibrationOverdueTier1Prohibition
+	conditionType: MustNotBeTrue
+	statement: "最終校正日からの経過日数（days_since_calibration）が規定校正周期（calibration_cycle_days）を超過している設備（mes#Equipment）を、Tier1顧客（customer_tier='Tier1'）向け受注（erp#Order）に紐づく製造指図（mes#Order、投入待ちQueuedを含む）に割り当ててはならない。"
+	linkedEntities: ['mes#Equipment', 'mes#Order', 'erp#Order', 'erp#Customer']
+
+	annotation category = "ComplianceGuardrail"
+	annotation policyDoc = "DOC-SOP-CNC101"
+	annotation severity = "High"

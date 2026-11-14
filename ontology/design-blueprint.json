@@ -1,0 +1,398 @@
+{
+  "ontology_name": "mfg_enterprise_ontology",
+  "ontology_experience": "v2_new_experience_tmdl",
+  "scenario": "Contoso Precision Motors — Cross-Domain Smart Manufacturing & Order Fulfillment Resilience",
+  "reference_date": "2026-05-14",
+  "competency_questions": [
+    {
+      "id": "CQ-01",
+      "question_ja": "営業が言う『リスクのあるオーダー』と製造現場が言う『保留中のオーダー（ワーク）』を混同せずにそれぞれ特定し、両者の紐づきを示せるか？",
+      "required_capabilities": ["Namespaces (erp#Order vs mes#Order)", "Synonyms", "Metadata (statusCodeMap)"]
+    },
+    {
+      "id": "CQ-02",
+      "question_ja": "現在重大アラートが発生している設備や不適合ロットから、何ホップ先にあるどの Tier 1 顧客の受注金額・SLA違約金に波及しているか（ERPステータス未更新の隠れリスク案件を含む）？",
+      "required_capabilities": ["Selective Graph Materialization (GQL multi-hop)", "Cross-Namespace Relationships", "Business Rules"]
+    },
+    {
+      "id": "CQ-03",
+      "question_ja": "定期校正周期を超過している設備や吸湿基準を超えた磁石ロットが、投入禁止ルールに違反して Tier 1 顧客案件や本番工程に割り当てられていないか？",
+      "required_capabilities": ["Business Rules", "Property Metadata (units & thresholds)"]
+    },
+    {
+      "id": "CQ-04",
+      "question_ja": "製品ファミリー別の有効受注金額合計や、センサー別の時系列ピーク・移動平均を、不要なグラフ変換コストをかけずに高速・高鮮度で集計できるか？",
+      "required_capabilities": ["Source-Native Execution Routing (Lakehouse SQL / Eventhouse KQL without Graph Materialization)"]
+    },
+    {
+      "id": "CQ-05",
+      "question_ja": "影響を受ける受注・設備・部材ロットをオントロジーで特定したうえで、交換部品番号・代替サプライヤー切替条件・社内決裁権限者・顧客8D報告期限を非構造化規程書から根拠付きで統合回答できるか？",
+      "required_capabilities": ["Fabric Data Agent (Ontology) + Microsoft Foundry (Unstructured Docs / Foundry IQ / AI Search)"]
+    }
+  ],
+  "namespaces": [
+    {
+      "prefix": "erp",
+      "uri": "http://contoso-motors.co.jp/ontology/erp",
+      "display_name_ja": "ERP 受注・調達サブオントロジー",
+      "owner_department": "EnterpriseSales_and_SCM",
+      "description": "顧客・サプライヤー・品目・製品・顧客受注（erp#Order）・購買発注を管理する商流・計画系サブオントロジー。"
+    },
+    {
+      "prefix": "mes",
+      "uri": "http://contoso-motors.co.jp/ontology/mes",
+      "display_name_ja": "MES 製造実行・品質サブオントロジー",
+      "owner_department": "Manufacturing_and_QualityAssurance",
+      "description": "工場ライン・製造設備・入荷部材ロット・製造指図（mes#Order）・品質検査記録を管理する現場実行系サブオントロジー。"
+    },
+    {
+      "prefix": "iot",
+      "uri": "http://contoso-motors.co.jp/ontology/iot",
+      "display_name_ja": "IoT 設備監視・テレメトリサブオントロジー",
+      "owner_department": "ProductionEngineering_and_Maintenance",
+      "description": "設備搭載センサー・時系列テレメトリ・設備異常アラートを管理するOT監視系サブオントロジー。"
+    }
+  ],
+  "entity_types": [
+    {
+      "qualified_name": "erp#Customer",
+      "namespace": "erp",
+      "name": "Customer",
+      "source_table": "erp_customers",
+      "key_column": "customer_id",
+      "key_type": "String",
+      "display_name_column": "customer_name",
+      "graph_materialize": true,
+      "synonyms": ["顧客", "得意先", "納入先", "カスタマー", "取引先顧客", "Account", "Client"],
+      "description": "精密アクチュエータ・リニアモジュールを購入するB2B顧客企業。Tier1顧客には厳格な納期遅延違約金と初動8D報告期限が適用される。",
+      "metadata": {
+        "domainOwner": "EnterpriseSales",
+        "sensitivity": "Confidential",
+        "tierPolicyDoc": "DOC-SLA-TIER1",
+        "slaPenaltyUnit": "JPY_per_day"
+      },
+      "property_metadata": {
+        "customer_tier": {"description": "顧客重要度ランク（Tier1=最優先戦略顧客、Tier2=主要顧客、Tier3=一般顧客）", "metadata": {"allowedValues": "Tier1,Tier2,Tier3"}},
+        "sla_penalty_jpy_per_day": {"description": "納入期日遅延1日あたりのSLA違約金（日本円）", "metadata": {"unit": "JPY", "aggregationDefault": "SUM"}},
+        "requires_8d_hours": {"description": "重大品質保留検知から初動8Dレポート提出までの契約期限（時間）", "metadata": {"unit": "hours"}}
+      }
+    },
+    {
+      "qualified_name": "erp#Supplier",
+      "namespace": "erp",
+      "name": "Supplier",
+      "source_table": "erp_suppliers",
+      "key_column": "supplier_id",
+      "key_type": "String",
+      "display_name_column": "supplier_name",
+      "graph_materialize": true,
+      "synonyms": ["サプライヤー", "仕入先", "購買先", "取引先メーカー", "ベンダー", "外注先", "Vendor"],
+      "description": "磁石・軸受・ろう材・コイル等の部材を供給する外部サプライヤー。主サプライヤーと認定バックアップサプライヤーに区分される。",
+      "metadata": {
+        "domainOwner": "Procurement",
+        "backupQualificationDoc": "DOC-MAN-NDFEB"
+      },
+      "property_metadata": {
+        "quality_rating_score": {"description": "直近四半期の受入品質評価スコア（100点満点、80点未満は監査・受入制限対象）", "metadata": {"unit": "score_0_to_100", "auditThreshold": "80"}},
+        "is_qualified_backup": {"description": "緊急代替調達向けにIATF16949等の同等認定を取得済みのバックアップ先か", "metadata": {"booleanMeaning": "true=即時切替可能な認定代替先"}}
+      }
+    },
+    {
+      "qualified_name": "erp#Material",
+      "namespace": "erp",
+      "name": "Material",
+      "source_table": "erp_materials",
+      "key_column": "material_id",
+      "key_type": "String",
+      "display_name_column": "material_name",
+      "graph_materialize": true,
+      "synonyms": ["部材", "資材", "部品", "原材料", "マテリアル", "品目", "Component", "Part"],
+      "description": "製品を構成する原材料・購入部品マスタ。重要度コードおよび許容最大吸湿量（ppm）を保持する。",
+      "metadata": {
+        "domainOwner": "MaterialsEngineering",
+        "handlingSpecDoc": "DOC-MAN-NDFEB"
+      },
+      "property_metadata": {
+        "max_moisture_ppm": {"description": "工程投入前に許容される最大水分含有量（ppm）", "metadata": {"unit": "ppm"}},
+        "standard_cost_jpy": {"description": "品目1単位あたりの標準原価（日本円）", "metadata": {"unit": "JPY"}}
+      }
+    },
+    {
+      "qualified_name": "erp#Product",
+      "namespace": "erp",
+      "name": "Product",
+      "source_table": "erp_products",
+      "key_column": "product_id",
+      "key_type": "String",
+      "display_name_column": "product_name",
+      "graph_materialize": true,
+      "synonyms": ["製品", "完成品", "モデル", "型式", "プロダクト", "アクチュエータ製品", "FinishedGood"],
+      "description": "顧客へ販売・出荷する精密アクチュエータおよびリニアモジュールの完成品マスタ。",
+      "metadata": {
+        "domainOwner": "ProductManagement",
+        "currency": "JPY"
+      },
+      "property_metadata": {
+        "standard_price_jpy": {"description": "標準販売単価（日本円）", "metadata": {"unit": "JPY"}},
+        "target_margin_pct": {"description": "目標粗利率（%）", "metadata": {"unit": "percent"}}
+      }
+    },
+    {
+      "qualified_name": "erp#Order",
+      "namespace": "erp",
+      "name": "Order",
+      "source_table": "erp_sales_orders",
+      "key_column": "order_id",
+      "key_type": "String",
+      "display_name_column": "order_id",
+      "graph_materialize": true,
+      "synonyms": ["受注", "顧客受注", "セールスオーダー", "顧客オーダー", "注文", "SO", "SalesOrder", "CustomerOrder"],
+      "description": "顧客から受領した販売受注（SO-2026-xxx）。製造現場の製造指図（mes#Order）と同名の『Order』概念だが、erp名前空間では商流上の顧客契約・約束出荷日・受注金額を表す。",
+      "metadata": {
+        "domainOwner": "EnterpriseSales",
+        "disambiguationNote": "営業・SCM上の顧客受注（SO-*）。工場の製造指図は mes#Order（WO-*）を参照すること。",
+        "expeditePolicyDoc": "DOC-POL-SCM002"
+      },
+      "property_metadata": {
+        "order_status_code": {
+          "description": "ERP上の受注進捗ステータスコード（夜間バッチ更新のため現場の最新品質保留より遅れる場合がある）",
+          "metadata": {
+            "statusCodeMap": "0=Cancelled(キャンセル), 1=Confirmed(受注確定), 2=InProduction(製造中), 3=AtRisk(納期遅延リスク), 4=Shipped(出荷済)"
+          }
+        },
+        "order_amount_jpy": {"description": "受注金額合計（日本円）", "metadata": {"unit": "JPY"}}
+      }
+    },
+    {
+      "qualified_name": "erp#PurchaseOrder",
+      "namespace": "erp",
+      "name": "PurchaseOrder",
+      "source_table": "erp_purchase_orders",
+      "key_column": "po_id",
+      "key_type": "String",
+      "display_name_column": "po_id",
+      "graph_materialize": false,
+      "synonyms": ["購買発注", "発注伝票", "仕入発注", "PO", "購買オーダー"],
+      "description": "サプライヤーに対する部材の発注伝票（PO-2026-xxx）。",
+      "metadata": {
+        "domainOwner": "Procurement",
+        "graphExclusionReason": "通常の波及経路探索は mes#MaterialLot -> erp#Supplier で直結できるため、Graph容量節約のためSQL参照に留める。"
+      },
+      "property_metadata": {
+        "po_amount_jpy": {"description": "購買発注金額（日本円）", "metadata": {"unit": "JPY"}}
+      }
+    },
+    {
+      "qualified_name": "mes#ProductionLine",
+      "namespace": "mes",
+      "name": "ProductionLine",
+      "source_table": "mes_production_lines",
+      "key_column": "line_id",
+      "key_type": "String",
+      "display_name_column": "line_name",
+      "graph_materialize": true,
+      "synonyms": ["製造ライン", "生産ライン", "ライン", "工程ライン", "工場ライン", "ShopFloorLine"],
+      "description": "名古屋・浜松・北九州の各工場に設置された加工・ろう付け・組立ライン。",
+      "metadata": {
+        "domainOwner": "ManufacturingOperations"
+      },
+      "property_metadata": {
+        "oee_target_pct": {"description": "目標総合設備効率 OEE（%）", "metadata": {"unit": "percent"}}
+      }
+    },
+    {
+      "qualified_name": "mes#Equipment",
+      "namespace": "mes",
+      "name": "Equipment",
+      "source_table": "mes_equipment",
+      "timeseries_table": "iot_telemetry",
+      "key_column": "equipment_id",
+      "key_type": "String",
+      "display_name_column": "equipment_name",
+      "graph_materialize": true,
+      "synonyms": ["設備", "マシン", "号機", "加工機", "製造装置", "炉", "ろう付け炉", "研削盤", "設備資産", "Machine", "Asset"],
+      "description": "製造ラインを構成する個別生産設備（真空ろう付け炉・CNC研削盤・巻線機・検査装置）。校正周期および稼働状態を管理し、時系列テレメトリと紐づく。",
+      "metadata": {
+        "domainOwner": "Maintenance",
+        "sopAnchorDocs": "DOC-SOP-VBF204;DOC-SOP-CNC101"
+      },
+      "property_metadata": {
+        "operating_state_code": {
+          "description": "設備の現在稼働状態コード",
+          "metadata": {
+            "stateCodeMap": "1=NormalRunning(正常稼働), 2=DegradedWarning(劣化・校正注意), 3=MaintenanceHold(異常停止・保全隔離中)"
+          }
+        },
+        "days_since_calibration": {"description": "最終定期校正日からの経過日数（2026-05-14時点）", "metadata": {"unit": "days"}},
+        "calibration_cycle_days": {"description": "規定の定期校正周期（日）", "metadata": {"unit": "days"}}
+      }
+    },
+    {
+      "qualified_name": "mes#MaterialLot",
+      "namespace": "mes",
+      "name": "MaterialLot",
+      "source_table": "mes_material_lots",
+      "key_column": "material_lot_id",
+      "key_type": "String",
+      "display_name_column": "material_lot_id",
+      "graph_materialize": true,
+      "synonyms": ["部材ロット", "資材ロット", "入荷ロット", "磁石ロット", "バッチ", "材料ロット", "Batch", "Lot"],
+      "description": "サプライヤーから入荷した受入単位ごとの部材ロット。吸湿量（moisture_ppm）および受入検査ステータスを保持し、トレーサビリティの起点となる。",
+      "metadata": {
+        "domainOwner": "QualityAssurance",
+        "specDoc": "DOC-MAN-NDFEB"
+      },
+      "property_metadata": {
+        "moisture_ppm": {"description": "受入・保管時カールフィッシャー水分測定値（ppm）。MAT-MAG-04は150ppm超で投入禁止、175ppm超で返品対象。", "metadata": {"unit": "ppm", "criticalLimitForMagnet": "150"}}
+      }
+    },
+    {
+      "qualified_name": "mes#Order",
+      "namespace": "mes",
+      "name": "Order",
+      "source_table": "mes_work_orders",
+      "key_column": "order_id",
+      "key_type": "String",
+      "display_name_column": "order_id",
+      "graph_materialize": true,
+      "synonyms": ["製造指図", "作業指示", "ワーク", "ワークオーダー", "工番", "指図書", "生産指示", "WO", "WorkOrder", "ProductionOrder"],
+      "description": "工場現場へ発行された製造指図（WO-2026-xxxx）。ERPの顧客受注（erp#Order）を実現するために、どのライン・設備・部材ロットで何個製造するかを管理する。",
+      "metadata": {
+        "domainOwner": "ManufacturingOperations",
+        "disambiguationNote": "製造現場の製造指図（WO-*）。顧客からの販売受注は erp#Order（SO-*）を参照すること。"
+      },
+      "property_metadata": {
+        "wo_status_code": {
+          "description": "製造指図の現場実行ステータスコード",
+          "metadata": {
+            "statusCodeMap": "10=Queued(投入待ち), 20=Running(加工・組立中), 30=QualityHold(品質異常保留), 40=Completed(工程完了)"
+          }
+        }
+      }
+    },
+    {
+      "qualified_name": "mes#QualityInspection",
+      "namespace": "mes",
+      "name": "QualityInspection",
+      "source_table": "mes_quality_inspections",
+      "key_column": "inspection_id",
+      "key_type": "String",
+      "display_name_column": "inspection_id",
+      "graph_materialize": true,
+      "synonyms": ["品質検査", "出荷検査", "工程検査", "QC結果", "検査記録", "不適合記録", "Inspection", "QualityCheck"],
+      "description": "製造指図に対するトルクリップル・接合ボイド率・絶縁抵抗の検査測定および合否処置記録。",
+      "metadata": {
+        "domainOwner": "QualityAssurance",
+        "qualityStandardDoc": "DOC-QMS-004"
+      },
+      "property_metadata": {
+        "disposition_code": {
+          "description": "品質検査の合否・処置判定コード",
+          "metadata": {
+            "dispositionCodeMap": "1=Pass(合格), 2=Rework(手直し再加工), 3=ScrapHold(廃棄・赤札隔離保留)"
+          }
+        },
+        "torque_ripple_pct": {"description": "トルクリップル率（%、3.0%超はDEF-TRQ-04不適合）", "metadata": {"unit": "percent", "scrapLimit": "3.0"}},
+        "bond_void_area_pct": {"description": "超音波/X線ろう付け接合ボイド面積率（%、5.0%超はDEF-BOND-02即時隔離）", "metadata": {"unit": "percent", "scrapLimit": "5.0"}}
+      }
+    },
+    {
+      "qualified_name": "iot#Sensor",
+      "namespace": "iot",
+      "name": "Sensor",
+      "source_table": "iot_sensors",
+      "key_column": "sensor_id",
+      "key_type": "String",
+      "display_name_column": "sensor_id",
+      "graph_materialize": false,
+      "synonyms": ["センサー", "計測器", "IoTセンサー", "温度センサー", "振動センサー", "真空計", "Probe"],
+      "description": "各生産設備に取り付けられた温度・振動・真空度監視センサーマスタ。",
+      "metadata": {
+        "domainOwner": "ProductionEngineering",
+        "graphExclusionReason": "センサー高頻度テレメトリ集計は Eventhouse KQL / Lakehouse SQL で直接実行する方が高速・高鮮度なため Graph 非投影。"
+      },
+      "property_metadata": {
+        "temp_crit_c": {"description": "異常停止温度閾値（摂氏 ℃）", "metadata": {"unit": "celsius"}},
+        "vib_crit_mm_s": {"description": "異常振動RMS閾値（mm/s）", "metadata": {"unit": "mm/s"}},
+        "vacuum_crit_pa": {"description": "真空度悪化異常閾値（Pa、0.0は非真空設備）", "metadata": {"unit": "Pa"}}
+      }
+    },
+    {
+      "qualified_name": "iot#EquipmentAlert",
+      "namespace": "iot",
+      "name": "EquipmentAlert",
+      "source_table": "iot_equipment_alerts",
+      "key_column": "alert_id",
+      "key_type": "String",
+      "display_name_column": "alert_code",
+      "graph_materialize": true,
+      "synonyms": ["設備アラート", "警報", "異常アラーム", "チョコ停アラート", "設備異常", "Alarm", "Alert"],
+      "description": "設備センサー閾値逸脱により発報されたアラートイベント。設備異常から顧客受注への波及探索（Blast Radius）の起点となる。",
+      "metadata": {
+        "domainOwner": "Maintenance",
+        "sopAnchorDocs": "DOC-SOP-VBF204;DOC-SOP-CNC101"
+      },
+      "property_metadata": {
+        "severity_code": {
+          "description": "アラート重大度コード",
+          "metadata": {
+            "severityCodeMap": "1=Info(情報), 2=Warning(警告), 3=Critical(重大異常・隔離対象)"
+          }
+        },
+        "duration_minutes": {"description": "閾値超過の継続時間（分）", "metadata": {"unit": "minutes"}}
+      }
+    }
+  ],
+  "relationships": [
+    {"name": "placedByCustomer", "source": "erp#Order", "source_column": "customer_id", "target": "erp#Customer", "target_column": "customer_id", "graph_materialize": true, "description": "顧客受注（erp#Order）を発注した顧客企業（erp#Customer）。"},
+    {"name": "ordersProduct", "source": "erp#Order", "source_column": "product_id", "target": "erp#Product", "target_column": "product_id", "graph_materialize": true, "description": "顧客受注で注文された完成品モデル。"},
+    {"name": "fulfillsSalesOrder", "source": "mes#Order", "source_column": "sales_order_id", "target": "erp#Order", "target_column": "order_id", "graph_materialize": true, "description": "MES製造指図（mes#Order）が引き当てられているERP顧客受注（erp#Order）。商流と製造現場を結ぶ最重要リンク。"},
+    {"name": "producesProduct", "source": "mes#Order", "source_column": "product_id", "target": "erp#Product", "target_column": "product_id", "graph_materialize": true, "description": "製造指図で生産する対象製品。"},
+    {"name": "scheduledOnLine", "source": "mes#Order", "source_column": "line_id", "target": "mes#ProductionLine", "target_column": "line_id", "graph_materialize": true, "description": "製造指図が実行される工場製造ライン。"},
+    {"name": "processedByEquipment", "source": "mes#Order", "source_column": "equipment_id", "target": "mes#Equipment", "target_column": "equipment_id", "graph_materialize": true, "description": "製造指図の主要加工・ろう付け・組立を担当する設備。"},
+    {"name": "consumesMaterialLot", "source": "mes#Order", "source_column": "material_lot_id", "target": "mes#MaterialLot", "target_column": "material_lot_id", "graph_materialize": true, "description": "製造指図に投入された入荷部材ロット。"},
+    {"name": "locatedInLine", "source": "mes#Equipment", "source_column": "line_id", "target": "mes#ProductionLine", "target_column": "line_id", "graph_materialize": true, "description": "設備が設置されている製造ライン。"},
+    {"name": "lotOfMaterial", "source": "mes#MaterialLot", "source_column": "material_id", "target": "erp#Material", "target_column": "material_id", "graph_materialize": true, "description": "部材ロットに対応する品目マスタ。"},
+    {"name": "suppliedByVendor", "source": "mes#MaterialLot", "source_column": "supplier_id", "target": "erp#Supplier", "target_column": "supplier_id", "graph_materialize": true, "description": "当該部材ロットを納入したサプライヤー。"},
+    {"name": "primarySupplier", "source": "erp#Material", "source_column": "primary_supplier_id", "target": "erp#Supplier", "target_column": "supplier_id", "graph_materialize": false, "description": "品目の主サプライヤー。"},
+    {"name": "backupSupplier", "source": "erp#Material", "source_column": "backup_supplier_id", "target": "erp#Supplier", "target_column": "supplier_id", "graph_materialize": true, "description": "緊急代替調達用の認定バックアップサプライヤー。"},
+    {"name": "inspectedForWorkOrder", "source": "mes#QualityInspection", "source_column": "work_order_id", "target": "mes#Order", "target_column": "order_id", "graph_materialize": true, "description": "品質検査記録の対象となった製造指図。"},
+    {"name": "triggeredOnEquipment", "source": "iot#EquipmentAlert", "source_column": "equipment_id", "target": "mes#Equipment", "target_column": "equipment_id", "graph_materialize": true, "description": "異常アラートが発生した対象設備。"},
+    {"name": "monitoredBySensor", "source": "iot#Sensor", "source_column": "equipment_id", "target": "mes#Equipment", "target_column": "equipment_id", "graph_materialize": false, "description": "センサーが監視している対象設備。"},
+    {"name": "poToSupplier", "source": "erp#PurchaseOrder", "source_column": "supplier_id", "target": "erp#Supplier", "target_column": "supplier_id", "graph_materialize": false, "description": "購買発注先のサプライヤー。"}
+  ],
+  "business_rules": [
+    {
+      "name": "ThermalBrazingExcursionQuarantine",
+      "condition_type": "Must be true",
+      "statement_ja": "真空ろう付け炉（VacuumBrazingFurnace）において温度835.0℃超（ALT-TMP-HIGH）または真空度5.0Pa超（ALT-VAC-LEAK）の重大アラート（severity_code=3）が15分以上継続した場合、当該設備で処理中または直近処理された製造指図（mes#Order）はすべて品質保留（wo_status_code=30: QualityHold）として隔離しなければならない。",
+      "statement_en": "When a VacuumBrazingFurnace triggers a Critical EquipmentAlert (severity_code=3 for ALT-TMP-HIGH > 835.0 C or ALT-VAC-LEAK > 5.0 Pa) lasting 15 minutes or longer, all mes#Order work orders processed on that mes#Equipment must be quarantined as QualityHold (wo_status_code=30).",
+      "linked_concepts": ["mes#Equipment", "iot#EquipmentAlert", "mes#Order"],
+      "metadata": {"category": "QualityContainment", "policyDoc": "DOC-SOP-VBF204", "severity": "Critical"}
+    },
+    {
+      "name": "CalibrationOverdueTier1Prohibition",
+      "condition_type": "Must not be true",
+      "statement_ja": "最終校正日からの経過日数（days_since_calibration）が規定校正周期（calibration_cycle_days）を超過している設備（mes#Equipment）を、Tier1顧客（customer_tier='Tier1'）向け受注（erp#Order）に紐づく製造指図（mes#Order、投入待ちQueuedを含む）に割り当ててはならない。",
+      "statement_en": "An mes#Equipment whose days_since_calibration exceeds calibration_cycle_days must not be assigned to any mes#Order (including Queued wo_status_code=10) fulfilling an erp#Order for a Tier1 erp#Customer.",
+      "linked_concepts": ["mes#Equipment", "mes#Order", "erp#Order", "erp#Customer"],
+      "metadata": {"category": "ComplianceGuardrail", "policyDoc": "DOC-SOP-CNC101", "severity": "High"}
+    },
+    {
+      "name": "CriticalMagnetMoistureLimit",
+      "condition_type": "Must not be true",
+      "statement_ja": "重要度CRITICALの希土類磁石品目（MAT-MAG-04）において、水分含有量（moisture_ppm）が許容上限150ppmを超過している部材ロット（mes#MaterialLot）を製造指図（mes#Order）へ投入してはならない。175ppm超のロットは脱ガス再生不可のため返品対象とし、認定バックアップサプライヤー（is_qualified_backup=true）の合格ロットへ切り替えなければならない。",
+      "statement_en": "An mes#MaterialLot of CRITICAL rare-earth magnet material (MAT-MAG-04) with moisture_ppm > 150 must not be consumed by any mes#Order; lots exceeding 175 ppm cannot be re-baked and must be replaced with lots from a qualified backup erp#Supplier.",
+      "linked_concepts": ["mes#MaterialLot", "erp#Material", "mes#Order", "erp#Supplier"],
+      "metadata": {"category": "MaterialQuality", "policyDoc": "DOC-MAN-NDFEB", "severity": "Critical"}
+    },
+    {
+      "name": "HiddenErpOrderRiskEscalation",
+      "condition_type": "Must be true",
+      "statement_ja": "Tier1顧客の受注（erp#Order）は、ERP上のorder_status_codeが2（InProduction）のままであっても、紐づくMES製造指図（mes#Order）が30（QualityHold）または品質検査（mes#QualityInspection）が3（ScrapHold）となった時点で実質納期リスク（Effective AtRisk）として合算集計し、出荷予定日の5営業日前までに代替ライン振替および緊急輸送決裁を開始しなければならない。",
+      "statement_en": "Any Tier1 erp#Order linked to an mes#Order in QualityHold (wo_status_code=30) or mes#QualityInspection in ScrapHold (disposition_code=3) must be treated as Effective AtRisk even if ERP order_status_code is still 2 (InProduction), and included in total impacted revenue for executive expedite approval.",
+      "linked_concepts": ["erp#Order", "mes#Order", "mes#QualityInspection", "erp#Customer"],
+      "metadata": {"category": "SupplyChainResilience", "policyDoc": "DOC-POL-SCM002", "severity": "Critical"}
+    }
+  ]
+}

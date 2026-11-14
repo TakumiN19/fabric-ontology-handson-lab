@@ -1,0 +1,9 @@
+/// 真空ろう付け炉異常時の仕掛製造指図隔離ルール
+rule ThermalBrazingExcursionQuarantine
+	conditionType: MustBeTrue
+	statement: "真空ろう付け炉（VacuumBrazingFurnace）において温度835.0℃超（ALT-TMP-HIGH）または真空度5.0Pa超（ALT-VAC-LEAK）の重大アラート（severity_code=3）が15分以上継続した場合、当該設備で処理中または直近処理された製造指図（mes#Order）はすべて品質保留（wo_status_code=30: QualityHold）として隔離しなければならない。"
+	linkedEntities: ['mes#Equipment', 'iot#EquipmentAlert', 'mes#Order']
+
+	annotation category = "QualityContainment"
+	annotation policyDoc = "DOC-SOP-VBF204"
+	annotation severity = "Critical"

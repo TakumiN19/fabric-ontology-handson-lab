@@ -1,0 +1,40 @@
+/// 顧客から受領した販売受注（SO-2026-xxx）。製造現場の製造指図（mes#Order）と同名の Order 概念を erp 名前空間で明確に分離する。
+entity 'erp#Order'
+	namespace: erp
+	keyProperty: order_id
+	displayNameProperty: order_id
+	synonyms: ["受注", "顧客受注", "セールスオーダー", "顧客オーダー", "注文", "SO", "SalesOrder"]
+
+	annotation domainOwner = "EnterpriseSales"
+	annotation disambiguationNote = "商流上の顧客受注（SO-*）。工場現場の製造指図は mes#Order（WO-*）を参照。"
+	annotation expeditePolicyDoc = "DOC-POL-SCM002"
+
+	property order_id
+		dataType: string
+		isKey
+		sourceColumn: erp_sales_orders.order_id
+
+	property customer_id
+		dataType: string
+		sourceColumn: erp_sales_orders.customer_id
+
+	property product_id
+		dataType: string
+		sourceColumn: erp_sales_orders.product_id
+
+	/// 約束出荷日（YYYY-MM-DD）
+	property promised_ship_date
+		dataType: string
+		sourceColumn: erp_sales_orders.promised_ship_date
+
+	/// 受注金額合計（日本円）
+	property order_amount_jpy
+		dataType: int64
+		sourceColumn: erp_sales_orders.order_amount_jpy
+		annotation unit = "JPY"
+
+	/// ERP上の受注進捗ステータスコード（夜間更新のためMES側の最新保留より遅れる場合がある）
+	property order_status_code
+		dataType: int64
+		sourceColumn: erp_sales_orders.order_status_code
+		annotation statusCodeMap = "0=Cancelled, 1=Confirmed, 2=InProduction, 3=AtRisk, 4=Shipped"

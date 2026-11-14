@@ -1,0 +1,9 @@
+/// 高耐熱ネオジム磁石ロットの吸湿上限および代替調達ルール
+rule CriticalMagnetMoistureLimit
+	conditionType: MustNotBeTrue
+	statement: "重要度CRITICALの希土類磁石品目（MAT-MAG-04）において、水分含有量（moisture_ppm）が許容上限150ppmを超過している部材ロット（mes#MaterialLot）を製造指図（mes#Order）へ投入してはならない。175ppm超のロットは脱ガス再生不可のため返品対象とし、認定バックアップサプライヤー（is_qualified_backup=true）の合格ロットへ切り替えなければならない。"
+	linkedEntities: ['mes#MaterialLot', 'erp#Material', 'mes#Order', 'erp#Supplier']
+
+	annotation category = "MaterialQuality"
+	annotation policyDoc = "DOC-MAN-NDFEB"
+	annotation severity = "Critical"

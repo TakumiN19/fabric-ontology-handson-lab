@@ -1,0 +1,9 @@
+/// ERP未更新ステータスを含む実質納期リスク（Effective AtRisk）合算・エスカレーションルール
+rule HiddenErpOrderRiskEscalation
+	conditionType: MustBeTrue
+	statement: "Tier1顧客の受注（erp#Order）は、ERP上のorder_status_codeが2（InProduction）のままであっても、紐づくMES製造指図（mes#Order）が30（QualityHold）または品質検査（mes#QualityInspection）が3（ScrapHold）となった時点で実質納期リスク（Effective AtRisk）として合算集計し、出荷予定日の5営業日前までに代替ライン振替および緊急輸送決裁を開始しなければならない。"
+	linkedEntities: ['erp#Order', 'mes#Order', 'mes#QualityInspection', 'erp#Customer']
+
+	annotation category = "SupplyChainResilience"
+	annotation policyDoc = "DOC-POL-SCM002"
+	annotation severity = "Critical"

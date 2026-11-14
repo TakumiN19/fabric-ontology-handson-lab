@@ -1,0 +1,7 @@
+/// ERP 受注・調達サブオントロジー（顧客・サプライヤー・品目・製品・顧客受注・購買発注）
+namespace erp
+	uri: "http://contoso-motors.co.jp/ontology/erp"
+	prefix: "erp"
+
+	annotation domainOwner = "EnterpriseSales_and_SCM"
+	annotation subOntologyScope = "Commercial_Order_and_Procurement"

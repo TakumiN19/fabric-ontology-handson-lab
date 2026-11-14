@@ -1,0 +1,151 @@
+{
+  "enrichment_before_after_suite": [
+    {
+      "test_id": "EVAL-01",
+      "focus_feature": "Namespaces (Sub-ontology) + Synonyms",
+      "prompt_ja": "現在『保留またはリスク状態にあるオーダー』を、営業部門の視点と工場現場の視点に分けて件数とIDをすべて挙げて。",
+      "before_enrichment_symptom": "『オーダー』が erp_sales_orders なのか mes_work_orders なのか曖昧になり、さらに数値コード（3 や 30）の意味が分からず片方のテーブルしか見ない・または0件/全件を返す。",
+      "after_enrichment_expected": {
+        "erp_order_at_risk_explicit": ["SO-2026-004", "SO-2026-009"],
+        "erp_order_hidden_effective_risk": ["SO-2026-015"],
+        "mes_order_quality_hold": ["WO-2026-1007", "WO-2026-1012", "WO-2026-1019"],
+        "why_accurate": "Namespace（erp#Order vs mes#Order）で同名概念が分離され、Metadata の statusCodeMap（3=AtRisk, 30=QualityHold）と HiddenErpOrderRiskEscalation ルールにより隠れリスク SO-2026-015 まで正確に区別される。"
+      }
+    },
+    {
+      "test_id": "EVAL-02",
+      "focus_feature": "Synonyms + Property Metadata (Units & Code Mappings)",
+      "prompt_ja": "チョコ停・重大アラームが出ている『号機』の現在の稼働状態と、ピーク計測値を単位つきで教えて。",
+      "before_enrichment_symptom": "『号機』『チョコ停』に対応するエンティティが特定しづらく、operating_state_code=3 や severity_code=3、peak_value（9.5 や 859.4）の物理単位（Pa なのか ℃ なのか）を誤認する。",
+      "after_enrichment_expected": {
+        "equipment_id": "EQ-VBF-204",
+        "operating_state": "3 = MaintenanceHold（異常停止・保全隔離中）",
+        "critical_alerts": [
+          {"alert_id": "ALT-2026-901", "code": "ALT-VAC-LEAK", "peak": "9.5 Pa", "duration_min": 28},
+          {"alert_id": "ALT-2026-902", "code": "ALT-TMP-HIGH", "peak": "859.4 ℃", "duration_min": 24},
+          {"alert_id": "ALT-2026-903", "code": "ALT-VAC-LEAK", "peak": "9.5 Pa", "duration_min": 21}
+        ],
+        "why_accurate": "mes#Equipment の Synonym『号機』と iot#EquipmentAlert の Synonym『異常アラーム』が解決され、Metadata により Pa・℃・分の単位とコード意味が付与される。"
+      }
+    },
+    {
+      "test_id": "EVAL-03",
+      "focus_feature": "Business Rules (Calibration & Moisture Guardrails)",
+      "prompt_ja": "今後投入待ちのワークも含めて、社内の品質・保全ガードレール（ビジネスルール）に違反している設備割当や部材ロット投入をすべて洗い出して。",
+      "before_enrichment_symptom": "生テーブルには『何がルール違反か』が書かれていないため、エージェントは単なる status カラムの検索しかできず、投入待ち（Queued=10）の WO-2026-1025 の校正期限超過割当を見落とす。",
+      "after_enrichment_expected": {
+        "calibration_rule_violation": {
+          "rule": "CalibrationOverdueTier1Prohibition",
+          "work_order_id": "WO-2026-1025",
+          "equipment_id": "EQ-CNC-101",
+          "days_since_calibration": 95,
+          "calibration_cycle_days": 90,
+          "sales_order_id": "SO-2026-024",
+          "customer_id": "CUS-001 (Tier1)"
+        },
+        "moisture_rule_violation": {
+          "rule": "CriticalMagnetMoistureLimit",
+          "material_lot_id": "LOT-MAG-088",
+          "moisture_ppm": 182,
+          "limit_ppm": 150,
+          "affected_work_orders": ["WO-2026-1007", "WO-2026-1012", "WO-2026-1019"]
+        },
+        "why_accurate": "list_ontology_rules / Ontology Context に登録された自然言語ビジネスルールをエージェントが参照し、複数エンティティをまたぐ違反条件を自律検証できる。"
+      }
+    }
+  ],
+  "graph_vs_tabular_suite": [
+    {
+      "scenario_id": "GRAPH-ON-01",
+      "recommendation": "USE_GRAPH_ENGINE",
+      "title": "5ホップ波及影響（Blast Radius）と隠れリスク受注金額の特定",
+      "prompt_ja": "重大アラートが出ている設備 EQ-VBF-204 および疑義磁石ロット LOT-MAG-088 から経路をたどり、影響を受けるすべての顧客受注（ERPステータス未更新分を含む）・顧客名・合計受注金額・1日あたりSLA違約金合計を特定して。",
+      "why_graph_wins": "iot#EquipmentAlert -> mes#Equipment <- mes#Order -> mes#MaterialLot -> erp#Supplier、さらに mes#Order -> erp#Order -> erp#Customer という異種ドメイン5〜6ホップの関係探索を、GQLのパターンマッチングで直感的かつ漏れなく走査できる。",
+      "expected_answer": {
+        "work_orders": ["WO-2026-1007", "WO-2026-1012", "WO-2026-1019"],
+        "sales_orders": ["SO-2026-004", "SO-2026-009", "SO-2026-015"],
+        "customers": ["CUS-001", "CUS-002", "CUS-003"],
+        "total_order_amount_jpy": 99700000,
+        "total_daily_sla_penalty_jpy": 2350000
+      }
+    },
+    {
+      "scenario_id": "GRAPH-ON-02",
+      "recommendation": "USE_GRAPH_ENGINE",
+      "title": "複数の不適合受注に共通する上流ボトルネック（共通原因ノード）の逆引き探索",
+      "prompt_ja": "ScrapHold（廃棄・隔離保留）が出ている3つの検査記録（INS-2026-5007, INS-2026-5012, INS-2026-5019）から上流へたどり、共通して関与している設備・部材ロット・主サプライヤーと、切り替え可能な認定バックアップサプライヤーを特定して。",
+      "why_graph_wins": "複数の末端事象ノードから上流へ可変ホップで収束点（Common Ancestor: EQ-VBF-204 と LOT-MAG-088 / SUP-003）を見つけ、さらに erp#Material 経由で backupSupplier（SUP-007）へ分岐するグラフ構造そのものの問いであるため。",
+      "expected_answer": {
+        "common_equipment": "EQ-VBF-204",
+        "common_material_lot": "LOT-MAG-088",
+        "primary_supplier": "SUP-003",
+        "qualified_backup_supplier": "SUP-007"
+      }
+    },
+    {
+      "scenario_id": "GRAPH-OFF-01",
+      "recommendation": "DO_NOT_USE_GRAPH_ENGINE_USE_SQL_DAX",
+      "title": "製品ファミリー別の有効受注金額・目標粗利率の全体集計（Tabular Rollup）",
+      "prompt_ja": "キャンセル済み（order_status_code=0）を除く全受注について、製品ファミリー別の受注金額合計と平均目標粗利率を集計して。",
+      "why_tabular_wins": "1ホップの定型集計（GROUP BY / SUM / AVG）であり、列指向エンジン（Lakehouse SQL / Semantic Model DAX）が圧倒的に高速・低CUコスト。このためだけに全トランザクションをGraphへMaterializeするとリフレッシュ負荷と容量消費が無駄になる。",
+      "expected_answer": {
+        "ServoActuator": 150400000,
+        "LinearModule": 99600000,
+        "CleanroomActuator": 58500000,
+        "DirectDrive": 50400000
+      }
+    },
+    {
+      "scenario_id": "GRAPH-OFF-02",
+      "recommendation": "DO_NOT_USE_GRAPH_ENGINE_USE_EVENTHOUSE_KQL",
+      "title": "高頻度IoTセンサーテレメトリの時系列ウィンドウ集計・異常スパイク監視",
+      "prompt_ja": "2026-05-14 の全センサー360件のテレメトリから、設備ごとの最高温度・最大振動RMS・最大真空度圧力と異常フラグ件数を時系列集計して。",
+      "why_tabular_wins": "Materialized Graph は手動/スケジュールリフレッシュが必要で秒〜分単位の鮮度ラグが生じるうえ、高頻度テレメトリ行をすべてグラフノード化するのはアンチパターン。Eventhouse KQL または Lakehouse SQL へのソースネイティブ実行が最適。",
+      "expected_answer": {
+        "EQ-VBF-204_max_temp_c": 859.4,
+        "EQ-VBF-204_max_vacuum_pa": 9.5,
+        "EQ-VBF-204_anomaly_rows": 4,
+        "EQ-CNC-101_max_vib_mm_s": 5.12,
+        "EQ-CNC-101_anomaly_rows": 2
+      }
+    }
+  ],
+  "foundry_hybrid_suite": [
+    {
+      "scenario_id": "HYBRID-01",
+      "prompt_ja": "現在重大アラートが出ている真空ろう付け炉の影響を受けるすべての顧客受注（隠れリスク案件を含む）を特定したうえで、社内規程・SOP・顧客SLA文書に基づき、(1) 該当設備の指定交換部品番号と代替設備、(2) 問題磁石ロットの返品要否と代替サプライヤー、(3) 最も報告期限が短い顧客への8Dレポート提出期限、(4) 緊急対応の最終決裁権限者 を出典文書IDつきで回答して。",
+      "expected_integrated_points": {
+        "structured_from_fabric_ontology_data_agent": {
+          "impacted_orders": ["SO-2026-004", "SO-2026-009", "SO-2026-015"],
+          "total_impacted_jpy": 99700000,
+          "total_daily_penalty_jpy": 2350000,
+          "lot_moisture_ppm": 182
+        },
+        "unstructured_from_microsoft_foundry": {
+          "replacement_part_and_alt_equipment": "PART-SEAL-KF40-VT / PART-TC-R850、代替健全機は名古屋第1工場 EQ-VBF-205（出典: DOC-SOP-VBF204）",
+          "magnet_lot_disposition_and_backup": "182 ppm > 175 ppm のため脱ガス再生不可・全数サプライヤー返品対象。認定代替先 SUP-007（信州マグネットマテリアルズ）の LOT-MAG-091 / PO-2026-315 を引当（出典: DOC-MAN-NDFEB）",
+          "shortest_8d_deadline": "CUS-003（関西セミコンダクター装置、SO-2026-015）が MES QualityHold 検知から 24時間以内（CUS-001/002 は 48時間以内）（出典: DOC-SLA-TIER1）",
+          "final_approver": "隠れリスク SO-2026-015 を含めた影響受注総額が 9,970万円（9,000万円以上）に達するため、SCM本部長ではなく COO（最高執行責任者）決裁が必須（出典: DOC-POL-SCM002）"
+        }
+      }
+    },
+    {
+      "scenario_id": "HYBRID-02",
+      "prompt_ja": "校正期限超過またはスピンドル振動アラートが出ている CNC 研削盤について、投入待ちの Tier 1 顧客向け製造指図への影響をオントロジーで特定し、SOP に基づく代替設備への振替先と現場での振動補正手順（使用機器番号と復帰基準値）を出典文書IDつきで回答して。",
+      "expected_integrated_points": {
+        "structured_from_fabric_ontology_data_agent": {
+          "equipment_id": "EQ-CNC-101",
+          "days_since_calibration": 95,
+          "calibration_cycle_days": 90,
+          "vibration_alert": "ALT-2026-904 (ALT-VIB-SPIKE, 5.12 mm/s)",
+          "blocked_queued_work_order": "WO-2026-1025",
+          "sales_order_and_customer": "SO-2026-024 / CUS-001 (Tier1)"
+        },
+        "unstructured_from_microsoft_foundry": {
+          "reroute_equipment": "名古屋第1工場 EQ-CNC-102（校正後42日）または北九州工場 EQ-CNC-103（校正後50日）へ振替（出典: DOC-SOP-CNC101）",
+          "maintenance_procedure": "フィールドバランサ BAL-FIELD-02 で 12,000 rpm 動的アンバランス補正を実施し、振動RMS 2.5 mm/s 以下への復帰とレーザー干渉計による定期校正を実施（出典: DOC-SOP-CNC101）"
+        }
+      }
+    }
+  ]
+}

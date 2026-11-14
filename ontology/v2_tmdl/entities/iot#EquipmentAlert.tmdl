@@ -1,0 +1,37 @@
+/// 設備センサー閾値逸脱により発報されたアラートイベント。
+entity 'iot#EquipmentAlert'
+	namespace: iot
+	keyProperty: alert_id
+	displayNameProperty: alert_code
+	synonyms: ["設備アラート", "警報", "異常アラーム", "チョコ停アラート", "設備異常", "Alarm", "Alert"]
+
+	annotation domainOwner = "Maintenance"
+	annotation sopAnchorDocs = "DOC-SOP-VBF204;DOC-SOP-CNC101"
+
+	property alert_id
+		dataType: string
+		isKey
+		sourceColumn: iot_equipment_alerts.alert_id
+
+	property equipment_id
+		dataType: string
+		sourceColumn: iot_equipment_alerts.equipment_id
+
+	property alert_code
+		dataType: string
+		sourceColumn: iot_equipment_alerts.alert_code
+
+	/// アラート重大度コード
+	property severity_code
+		dataType: int64
+		sourceColumn: iot_equipment_alerts.severity_code
+		annotation severityCodeMap = "1=Info, 2=Warning, 3=Critical"
+
+	property peak_value
+		dataType: double
+		sourceColumn: iot_equipment_alerts.peak_value
+
+	property duration_minutes
+		dataType: int64
+		sourceColumn: iot_equipment_alerts.duration_minutes
+		annotation unit = "minutes"

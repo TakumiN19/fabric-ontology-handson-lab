@@ -1,0 +1,9 @@
+doc_id,file_name,doc_type,domain,anchor_keys,owner_dept,effective_date
+DOC-SOP-VBF204,SOP-EQ-VBF-204_vacuum_brazing_furnace.md,SOP,MES_IoT,EQ-VBF-204;EQ-VBF-205;ALT-VAC-LEAK;ALT-TMP-HIGH,ProductionEngineering,2026-01-15
+DOC-SOP-CNC101,SOP-EQ-CNC-101_spindle_vibration_maintenance.md,SOP,MES_IoT,EQ-CNC-101;ALT-VIB-SPIKE;DEF-DIM-01,Maintenance,2026-02-01
+DOC-QMS-004,QMS-STD-004_actuator_quality_disposition.md,QualityStandard,Quality,DEF-BOND-02;DEF-TRQ-04;PRD-ACT-900;PRD-ACT-650,QualityAssurance,2026-01-10
+DOC-POL-SCM002,POL-SCM-002_emergency_expedite_and_airfreight.md,CorporatePolicy,ERP_SCM,Tier1;AtRisk;SUP-007;EQ-VBF-205,SupplyChainManagement,2025-11-01
+DOC-MAN-NDFEB,MAN-MAT-NDFEB_magnet_lot_handling.md,MaterialSpec,ERP_MES,MAT-MAG-04;SUP-003;SUP-007;LOT-MAG-088,MaterialsEngineering,2026-01-20
+DOC-INC-1028,INC-2026-1028_hamamatsu_line2_brazing_incident.md,IncidentReport,MES_Quality,EQ-VBF-204;LINE-HMM-02;DEF-BOND-02;PART-SEAL-KF40,QualityAssurance,2026-03-05
+DOC-SLA-TIER1,SLA-CUS-001_tier1_robotics_contract_summary.md,ContractSummary,ERP_Sales,CUS-001;CUS-002;CUS-003;CUS-004,EnterpriseSales,2026-04-01
+DOC-GLOSSARY,GLOSSARY_enterprise_domain_terms.md,DomainInterviewNotes,CrossDomain,erp#Order;mes#Order;Equipment;QualityHold;AtRisk,EnterpriseArchitecture,2026-05-01

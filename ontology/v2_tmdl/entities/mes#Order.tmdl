@@ -1,0 +1,44 @@
+/// 工場現場へ発行された製造指図（WO-2026-xxxx）。ERP顧客受注（erp#Order）と同名の Order 概念を mes 名前空間で分離する。
+entity 'mes#Order'
+	namespace: mes
+	keyProperty: order_id
+	displayNameProperty: order_id
+	synonyms: ["製造指図", "作業指示", "ワーク", "ワークオーダー", "工番", "指図書", "WO", "WorkOrder"]
+
+	annotation domainOwner = "ManufacturingOperations"
+	annotation disambiguationNote = "製造現場の製造指図（WO-*）。顧客からの販売受注は erp#Order（SO-*）を参照。"
+
+	property order_id
+		dataType: string
+		isKey
+		sourceColumn: mes_work_orders.order_id
+
+	property sales_order_id
+		dataType: string
+		sourceColumn: mes_work_orders.sales_order_id
+
+	property equipment_id
+		dataType: string
+		sourceColumn: mes_work_orders.equipment_id
+
+	property material_lot_id
+		dataType: string
+		sourceColumn: mes_work_orders.material_lot_id
+
+	property planned_qty
+		dataType: int64
+		sourceColumn: mes_work_orders.planned_qty
+
+	property good_qty
+		dataType: int64
+		sourceColumn: mes_work_orders.good_qty
+
+	property scrap_qty
+		dataType: int64
+		sourceColumn: mes_work_orders.scrap_qty
+
+	/// 製造指図の現場実行ステータスコード
+	property wo_status_code
+		dataType: int64
+		sourceColumn: mes_work_orders.wo_status_code
+		annotation statusCodeMap = "10=Queued, 20=Running, 30=QualityHold, 40=Completed"

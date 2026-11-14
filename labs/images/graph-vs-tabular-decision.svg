@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 460" width="1120" height="460" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif">
+  <rect width="1120" height="460" fill="#FFFFFF"/>
+  <rect x="16" y="16" width="1088" height="428" rx="8" fill="#FAFAFA" stroke="#E2E8F0" stroke-width="1"/>
+
+  <text x="40" y="50" font-size="18" font-weight="600" fill="#0F172A">グラフエンジン（Materialized Graph）採否の判断基準（Lab 05）</text>
+  <text x="40" y="72" font-size="12" fill="#64748B">「オントロジーで意味を定義すること」と「グラフエンジンに実体化（Materialize）すること」は別判断。ワークロード特性で使い分ける</text>
+  <line x1="40" y1="86" x2="1080" y2="86" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Left Panel: Graph Engine ON -->
+  <rect x="40" y="108" width="504" height="312" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.5"/>
+  <rect x="40" y="108" width="504" height="38" rx="6" fill="#EEF2FF"/>
+  <circle cx="62" cy="127" r="6" fill="#4F46E5"/>
+  <text x="78" y="132" font-size="14" font-weight="600" fill="#312E81">グラフエンジンを設定した方がいいケース（Graph ON / GQL）</text>
+
+  <text x="60" y="168" font-size="12" font-weight="600" fill="#0F172A">1. 異種ドメインをまたぐ多段ホップ波及分析（Blast Radius: 3〜6+ hops）</text>
+  <text x="72" y="188" font-size="11" fill="#475569">例: 設備アラート → 設備 → 製造指図 → 部材ロット → 顧客受注 → Tier1顧客</text>
+  <text x="72" y="205" font-size="11" fill="#475569">SQLでは自己結合や6表以上のJOINが肥大化する経路探索を GQL MATCH で簡潔に走査。</text>
+
+  <text x="60" y="236" font-size="12" font-weight="600" fill="#0F172A">2. 複数不良からの共通上流ボトルネック逆引き（Common Ancestor）</text>
+  <text x="72" y="256" font-size="11" fill="#475569">例: 複数の ScrapHold 検査記録に共通して関与した設備・ロット・代替サプライヤー探索。</text>
+
+  <text x="60" y="287" font-size="12" font-weight="600" fill="#0F172A">3. 可変長BOM・サプライチェーン経路探索（Variable-Length Path）</text>
+  <text x="72" y="307" font-size="11" fill="#475569">例: 何段階先にあるか事前に分からない部品代替経路や最短到達パスの発見。</text>
+
+  <rect x="60" y="330" width="464" height="72" rx="4" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="74" y="350" font-size="11" font-weight="600" fill="#334155">ベストプラクティス: Selective Materialization（選択的投影）</text>
+  <text x="74" y="368" font-size="10" fill="#475569">・経路探索に必要な9エンティティのみ Manage graph で選択して Materialize する。</text>
+  <text x="74" y="384" font-size="10" fill="#475569">・キーは String / BigInt 必須、単一 Lakehouse Delta テーブル（Column Mapping 無効）が対象。</text>
+
+  <!-- Right Panel: Graph Engine OFF -->
+  <rect x="576" y="108" width="504" height="312" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect x="576" y="108" width="504" height="38" rx="6" fill="#F1F5F9"/>
+  <circle cx="598" cy="127" r="6" fill="#16A34A"/>
+  <text x="614" y="132" font-size="14" font-weight="600" fill="#0F172A">グラフエンジンを使わない方がいいケース（SQL / DAX / KQL）</text>
+
+  <text x="596" y="168" font-size="12" font-weight="600" fill="#0F172A">1. 大量行の単純集計・財務KPIレポート（Tabular Set Rollup）</text>
+  <text x="608" y="188" font-size="11" fill="#475569">例: 製品ファミリー別の有効受注金額合計（SUM）や平均目標粗利率（AVG）。</text>
+  <text x="608" y="205" font-size="11" fill="#475569">→ Lakehouse SQL / Semantic Model DAX の列指向スキャンが最速かつ余分なCU消費ゼロ。</text>
+
+  <text x="596" y="236" font-size="12" font-weight="600" fill="#0F172A">2. 秒〜分単位の鮮度が求められる高頻度IoTテレメトリ監視</text>
+  <text x="608" y="256" font-size="11" fill="#475569">例: 全センサー360件〜数千万件のピーク温度・振動RMS・移動平均のリアルタイム監視。</text>
+  <text x="608" y="273" font-size="11" fill="#475569">→ Materialized Graph は手動/定期リフレッシュが必要で鮮度ラグが生じるため KQL が最適。</text>
+
+  <text x="596" y="304" font-size="12" font-weight="600" fill="#0F172A">3. Semantic Model の DAX メジャー（Metrics）を直接評価する問い</text>
+  <text x="608" y="324" font-size="11" fill="#475569">→ Semantic Model バインドのエンティティは現時点で Graph 投影対象外（DAX プロキシ評価）。</text>
+
+  <rect x="596" y="344" width="464" height="58" rx="4" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="610" y="364" font-size="11" font-weight="600" fill="#166534">Ontology の価値は Graph OFF でも効く！</text>
+  <text x="610" y="382" font-size="10" fill="#14532D">Graph に投影しないテーブルでも、Ontology の Synonym・Metadata・Rules が SQL/KQL 生成を正確化する。</text>
+</svg>

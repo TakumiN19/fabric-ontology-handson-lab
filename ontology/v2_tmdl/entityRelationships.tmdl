@@ -1,0 +1,24 @@
+/// 商流（erp）× 製造実行（mes）× 設備監視（iot）を結ぶサブオントロジー横断リレーションシップ定義
+entityRelationship fulfillsSalesOrder
+	fromEntity: 'mes#Order'
+	fromProperty: sales_order_id
+	toEntity: 'erp#Order'
+	toProperty: order_id
+
+entityRelationship processedByEquipment
+	fromEntity: 'mes#Order'
+	fromProperty: equipment_id
+	toEntity: 'mes#Equipment'
+	toProperty: equipment_id
+
+entityRelationship consumesMaterialLot
+	fromEntity: 'mes#Order'
+	fromProperty: material_lot_id
+	toEntity: 'mes#MaterialLot'
+	toProperty: material_lot_id
+
+entityRelationship triggeredOnEquipment
+	fromEntity: 'iot#EquipmentAlert'
+	fromProperty: equipment_id
+	toEntity: 'mes#Equipment'
+	toProperty: equipment_id

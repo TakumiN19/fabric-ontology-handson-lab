@@ -1,0 +1,38 @@
+/// 製造ラインを構成する個別生産設備（真空ろう付け炉・CNC研削盤・巻線機・検査装置）。
+entity 'mes#Equipment'
+	namespace: mes
+	keyProperty: equipment_id
+	displayNameProperty: equipment_name
+	synonyms: ["設備", "マシン", "号機", "加工機", "製造装置", "炉", "ろう付け炉", "研削盤", "Machine", "Asset"]
+
+	annotation domainOwner = "Maintenance"
+	annotation sopAnchorDocs = "DOC-SOP-VBF204;DOC-SOP-CNC101"
+
+	property equipment_id
+		dataType: string
+		isKey
+		sourceColumn: mes_equipment.equipment_id
+
+	property equipment_name
+		dataType: string
+		sourceColumn: mes_equipment.equipment_name
+
+	property equipment_type
+		dataType: string
+		sourceColumn: mes_equipment.equipment_type
+
+	property calibration_cycle_days
+		dataType: int64
+		sourceColumn: mes_equipment.calibration_cycle_days
+		annotation unit = "days"
+
+	property days_since_calibration
+		dataType: int64
+		sourceColumn: mes_equipment.days_since_calibration
+		annotation unit = "days"
+
+	/// 設備の現在稼働状態コード
+	property operating_state_code
+		dataType: int64
+		sourceColumn: mes_equipment.operating_state_code
+		annotation stateCodeMap = "1=NormalRunning, 2=DegradedWarning, 3=MaintenanceHold"

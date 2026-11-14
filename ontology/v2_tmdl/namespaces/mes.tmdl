@@ -1,0 +1,7 @@
+/// MES 製造実行・品質サブオントロジー（工場ライン・設備・部材ロット・製造指図・品質検査）
+namespace mes
+	uri: "http://contoso-motors.co.jp/ontology/mes"
+	prefix: "mes"
+
+	annotation domainOwner = "Manufacturing_and_QualityAssurance"
+	annotation subOntologyScope = "ShopFloor_Execution_and_Quality"

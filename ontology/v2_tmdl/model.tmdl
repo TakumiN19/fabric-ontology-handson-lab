@@ -1,0 +1,13 @@
+model Model
+	culture: ja-JP
+	defaultPowerBIDataSourceVersion: powerBI_V3
+
+ref namespace erp
+ref namespace mes
+ref namespace iot
+
+ref entity 'erp#Order'
+ref entity 'mes#Order'
+ref entity 'mes#Equipment'
+ref entity 'mes#MaterialLot'
+ref entity 'iot#EquipmentAlert'

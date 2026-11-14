@@ -1,0 +1,33 @@
+/// サプライヤーから入荷した受入単位ごとの部材ロット。
+entity 'mes#MaterialLot'
+	namespace: mes
+	keyProperty: material_lot_id
+	displayNameProperty: material_lot_id
+	synonyms: ["部材ロット", "資材ロット", "入荷ロット", "磁石ロット", "バッチ", "Batch", "Lot"]
+
+	annotation domainOwner = "QualityAssurance"
+	annotation specDoc = "DOC-MAN-NDFEB"
+
+	property material_lot_id
+		dataType: string
+		isKey
+		sourceColumn: mes_material_lots.material_lot_id
+
+	property material_id
+		dataType: string
+		sourceColumn: mes_material_lots.material_id
+
+	property supplier_id
+		dataType: string
+		sourceColumn: mes_material_lots.supplier_id
+
+	/// 受入・保管時カールフィッシャー水分測定値（ppm）
+	property moisture_ppm
+		dataType: int64
+		sourceColumn: mes_material_lots.moisture_ppm
+		annotation unit = "ppm"
+		annotation criticalLimitForMagnet = "150"
+
+	property lot_qc_status
+		dataType: string
+		sourceColumn: mes_material_lots.lot_qc_status
