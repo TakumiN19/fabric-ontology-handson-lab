@@ -42,9 +42,9 @@
 ### 起動手順
 
 1. このリポジトリの GitHub ページ右上にある緑色の **`<> Code`** ボタンをクリックし、**`Codespaces`** タブから **`Create codespace on main`** をクリックします。
-2. ブラウザ（または VS Code デスクトップ）で Codespace が開いたら、ターミナルで初回セットアップと環境チェックを実行します。
+2. ブラウザ（または VS Code デスクトップ）で Codespace が起動すると、`.devcontainer/devcontainer.json` により Copilot CLI・`skills-for-fabric` (`v0.3.22`)・`sqlcmd` の自動セットアップが実行されます。ターミナルで環境チェックを実行して完了を確認します。
    ```bash
-   bash .devcontainer/scripts/setup.sh && bash .devcontainer/scripts/verify.sh
+   bash .devcontainer/scripts/verify.sh
    ```
    すべての項目が `[OK]` と表示され、`Environment verification completed successfully.` が出れば準備完了です。
 3. 続けて **[Lab 00 の 0-6（GitHub Copilot CLI へのサインイン）](./labs/00-prerequisites.md#0-6-github-copilot-cli-を起動してサインインする)** へ進み、**0-7 で自分の `student` 番号を一度登録**したら **[Lab 01](./labs/01-login-and-data-setup.md)** を開始してください。
@@ -116,6 +116,7 @@ fabric-ontology-handson-lab/
 ├── .github/
 │   └── copilot-instructions.md                # student番号自動解決・MCP/API遵守ルール
 ├── .devcontainer/
+│   ├── devcontainer.json                      # GitHub Codespaces / Dev Container 自動セットアップ定義
 │   ├── Dockerfile                             # Python 3.12 ベース固定イメージ
 │   └── scripts/
 │       ├── versions.env                       # Copilot CLI / skills-for-fabric v0.3.22 固定定義

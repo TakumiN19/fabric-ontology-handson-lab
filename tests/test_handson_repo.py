@@ -26,6 +26,7 @@ class TestHandsonRepo(unittest.TestCase):
             "README.md",
             ".gitignore",
             ".github/copilot-instructions.md",
+            ".devcontainer/devcontainer.json",
             ".devcontainer/Dockerfile",
             ".devcontainer/scripts/versions.env",
             ".devcontainer/scripts/setup.sh",
@@ -99,6 +100,22 @@ class TestHandsonRepo(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(res.returncode, 0, f"bash -n failed for {sh_rel}: {res.stderr}")
+
+    def test_devcontainer_matches_versions_env(self) -> None:
+        devcontainer = json.loads((REPO_ROOT / ".devcontainer" / "devcontainer.json").read_text(encoding="utf-8"))
+        versions: dict[str, str] = {}
+        for line in (REPO_ROOT / ".devcontainer" / "scripts" / "versions.env").read_text(encoding="utf-8").splitlines():
+            if "=" in line and not line.strip().startswith("#"):
+                k, v = line.split("=", 1)
+                versions[k.strip()] = v.strip()
+
+        node_feat = devcontainer["features"]["ghcr.io/devcontainers/features/node:2.1.0"]
+        az_feat = devcontainer["features"]["ghcr.io/devcontainers/features/azure-cli:1.3.0"]
+        self.assertEqual(node_feat["version"], versions["NODE_VERSION"])
+        self.assertEqual(node_feat["npmVersion"], versions["NPM_VERSION"])
+        self.assertEqual(az_feat["version"], versions["AZURE_CLI_VERSION"])
+        self.assertIn("setup.sh", devcontainer["postCreateCommand"])
+        self.assertIn("verify.sh", devcontainer["postCreateCommand"])
 
     def test_blueprint_matches_csv_schemas_and_namespaces(self) -> None:
         blueprint = json.loads((REPO_ROOT / "ontology" / "design-blueprint.json").read_text(encoding="utf-8"))

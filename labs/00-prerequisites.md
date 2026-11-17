@@ -7,10 +7,10 @@
 
 ## ⚡ GitHub Codespaces を使っている場合（推奨ルート）
 
-Codespace のターミナルを開き、以下を実行してください。
+Codespace の起動時に `.devcontainer/devcontainer.json` の自動セットアップが完了しています。ターミナルを開き、確認スクリプトを実行してください。
 
 ```bash
-bash .devcontainer/scripts/setup.sh && bash .devcontainer/scripts/verify.sh
+bash .devcontainer/scripts/verify.sh
 ```
 
 `Environment verification completed successfully.` と表示されたら、0-1〜0-5 は完了済みです。そのまま **[0-6. GitHub Copilot CLI を起動してサインインする](#0-6-github-copilot-cli-を起動してサインインする)** へ進んでください。
@@ -32,7 +32,7 @@ bash .devcontainer/scripts/setup.sh && bash .devcontainer/scripts/verify.sh
 ## 0-2. リポジトリのクローンとローカルデータの整合性チェック
 
 ```bash
-git clone <このリポジトリのURL>
+git clone https://github.com/TakumiN19/fabric-ontology-handson-lab.git
 cd fabric-ontology-handson-lab
 python3 scripts/verify_local_assets.py
 ```
